@@ -153,7 +153,40 @@ static inline NSComparisonResult NSCalendarUnitCompareSignificance(NSCalendarUni
     NSDateComponents *components = [self.calendar components:self.significantUnits fromDate:startingDate toDate:endingDate options:0];
 
     if (self.usesIdiomaticDeicticExpressions) {
-        NSString *idiomaticDeicticExpression = [self localizedIdiomaticDeicticExpressionForComponents:components];
+        NSCalendarUnit yearAndMonthUnits = NSCalendarUnitYear | NSCalendarUnitMonth;
+        NSCalendarUnit weekAndDayUnits = NSCalendarUnitWeekOfYear | NSCalendarUnitDay;
+        NSDateComponents *startingDateComponents = [self.calendar components: yearAndMonthUnits
+                                                                    fromDate:startingDate];
+        NSDateComponents *endingDateComponents = [self.calendar components:yearAndMonthUnits
+                                                                  fromDate:endingDate];
+
+        NSDateComponents *constructedDateComponents = [[NSDateComponents alloc] init];
+        constructedDateComponents.year = 0;
+        constructedDateComponents.month = 0;
+        constructedDateComponents.weekOfYear = 0;
+        constructedDateComponents.day = 0;
+        if (endingDateComponents.year != startingDateComponents.year) {
+            constructedDateComponents.year = endingDateComponents.year - startingDateComponents.year;
+        }
+        else if (endingDateComponents.month != startingDateComponents.month) {
+            constructedDateComponents.month = endingDateComponents.month - startingDateComponents.month;
+        }
+        else {
+            startingDateComponents = [self.calendar components:weekAndDayUnits
+                                                      fromDate:startingDate];
+            endingDateComponents = [self.calendar components:weekAndDayUnits
+                                                    fromDate:endingDate];
+            if (startingDateComponents.weekOfYear != endingDateComponents.weekOfYear &&
+                    (abs((int)(startingDateComponents.day - endingDateComponents.day)) > 1)) // if it's "yesterday" or "tomorrow" we don't want it to say "last week" or "next week" (even if technically it was)
+            {
+                constructedDateComponents.weekOfYear = endingDateComponents.weekOfYear - startingDateComponents.weekOfYear;
+            }
+            else if (startingDateComponents.day != endingDateComponents.day)
+            {
+                constructedDateComponents.day = endingDateComponents.day - startingDateComponents.day;
+            }
+        }
+        NSString *idiomaticDeicticExpression = [self localizedIdiomaticDeicticExpressionForComponents:constructedDateComponents];
         if (idiomaticDeicticExpression) {
             return idiomaticDeicticExpression;
         }
