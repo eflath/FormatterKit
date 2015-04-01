@@ -155,36 +155,36 @@ static inline NSComparisonResult NSCalendarUnitCompareSignificance(NSCalendarUni
     if (self.usesIdiomaticDeicticExpressions) {
         NSCalendarUnit yearAndMonthUnits = NSCalendarUnitYear | NSCalendarUnitMonth;
         NSCalendarUnit weekAndDayUnits = NSCalendarUnitWeekOfYear | NSCalendarUnitDay;
-        NSDateComponents *startingDateComponents = [self.calendar components: yearAndMonthUnits
+        NSDateComponents *startingDateComponentsYearMonth = [self.calendar components: yearAndMonthUnits
                                                                     fromDate:startingDate];
-        NSDateComponents *endingDateComponents = [self.calendar components:yearAndMonthUnits
+        NSDateComponents *endingDateComponentsYearMonth = [self.calendar components:yearAndMonthUnits
                                                                   fromDate:endingDate];
+
+        NSDateComponents *startingDateComponentsWeekAndDay = [self.calendar components:weekAndDayUnits
+                                                                           fromDate:startingDate];
+
+        NSDateComponents *endingDateComponentsWeekAndDay = [self.calendar components:weekAndDayUnits
+                                                                         fromDate:endingDate];
 
         NSDateComponents *constructedDateComponents = [[NSDateComponents alloc] init];
         constructedDateComponents.year = 0;
         constructedDateComponents.month = 0;
         constructedDateComponents.weekOfYear = 0;
         constructedDateComponents.day = 0;
-        if (endingDateComponents.year != startingDateComponents.year) {
-            constructedDateComponents.year = endingDateComponents.year - startingDateComponents.year;
+        BOOL isYesterdayOrTomorrow = abs((int)components.day) == 1;
+        if (endingDateComponentsYearMonth.year != startingDateComponentsYearMonth.year && !isYesterdayOrTomorrow) {
+            constructedDateComponents.year = endingDateComponentsYearMonth.year - startingDateComponentsYearMonth.year;
         }
-        else if (endingDateComponents.month != startingDateComponents.month) {
-            constructedDateComponents.month = endingDateComponents.month - startingDateComponents.month;
+        else if (endingDateComponentsYearMonth.month != startingDateComponentsYearMonth.month && !isYesterdayOrTomorrow) {
+            constructedDateComponents.month = endingDateComponentsYearMonth.month - startingDateComponentsYearMonth.month;
         }
-        else {
-            startingDateComponents = [self.calendar components:weekAndDayUnits
-                                                      fromDate:startingDate];
-            endingDateComponents = [self.calendar components:weekAndDayUnits
-                                                    fromDate:endingDate];
-            if (startingDateComponents.weekOfYear != endingDateComponents.weekOfYear &&
-                    (abs((int)(startingDateComponents.day - endingDateComponents.day)) > 1)) // if it's "yesterday" or "tomorrow" we don't want it to say "last week" or "next week" (even if technically it was)
-            {
-                constructedDateComponents.weekOfYear = endingDateComponents.weekOfYear - startingDateComponents.weekOfYear;
-            }
-            else if (startingDateComponents.day != endingDateComponents.day)
-            {
-                constructedDateComponents.day = endingDateComponents.day - startingDateComponents.day;
-            }
+        else if (startingDateComponentsWeekAndDay.weekOfYear != endingDateComponentsWeekAndDay.weekOfYear && !isYesterdayOrTomorrow)
+        {
+            constructedDateComponents.weekOfYear = endingDateComponentsWeekAndDay.weekOfYear - startingDateComponentsWeekAndDay.weekOfYear;
+        }
+        else if (startingDateComponentsWeekAndDay.day != endingDateComponentsWeekAndDay.day)
+        {
+            constructedDateComponents.day = components.day;
         }
         NSString *idiomaticDeicticExpression = [self localizedIdiomaticDeicticExpressionForComponents:constructedDateComponents];
         if (idiomaticDeicticExpression) {
